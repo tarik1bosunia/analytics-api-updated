@@ -3,7 +3,7 @@ services:
     image: analytics-api:v1
     build:
       context: .
-      dockerfile: Dockerfile.web
+      dockerfile: Dockerfile.dev
     # environment:
     #   - PORT=8002
     #   - DATABASE_URL=postgresql+psycopg://time-user:time-pw@db_service:5432/timescaledb

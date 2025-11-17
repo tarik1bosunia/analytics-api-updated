@@ -57,6 +57,11 @@ docker compose up -d db_service
 docker stop $(docker ps -q)
 ```
 
+### docker clean 
+```
+docker compose down -v --remove-orphans
+```
+
 fastapi[standard]
 ```
 annotated-doc==0.0.4

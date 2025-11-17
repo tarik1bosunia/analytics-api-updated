@@ -8,7 +8,8 @@ from .models import (
     EventModel, 
     EventListSchema, 
     EventCreateSchema,
-    EventUpdateSchema
+    EventUpdateSchema,
+    get_utc_now
 )
 from api.db.config import DATABASE_URL
 router = APIRouter()
@@ -16,14 +17,9 @@ router = APIRouter()
 # GET /api/events/
 @router.get("/", response_model=EventListSchema)
 def get_events(session: Session = Depends(get_session)):
-    # print(os.environ.get("DATABASE_URL", "No DB URL set"))
-    # print("Database URL:", DATABASE_URL)
-    # query = select(EventModel).order_by(desc(EventModel.id)).limit(5)
-    query = select(EventModel).order_by().limit(5)
-    # results = session.exec(query).all()
+    query = select(EventModel).order_by(desc(EventModel.updated_at)).limit(200)
     results = session.exec(query).all()
     return EventListSchema(results=list(results), count=len(results))
-
 # POST /api/events/
 @router.post("/", response_model=EventModel)
 def create_event(
@@ -73,14 +69,33 @@ def update_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
+
     data = payload.model_dump()
-    return   EventModel(id=event_id, **data)
+    
+    for k, v in data.items():
+        setattr(event, k, v)
+        
+    event.updated_at = get_utc_now()
+    
+    session.add(event)
+    session.commit()
+    session.refresh(event)
+    
+    return event
 
 
 
 # DELETE /api/events/{event_id}
-@router.delete("/{event_id}")
-def delete_event(event_id: int) ->   EventModel:
-    return   EventModel(id=event_id)
+@router.delete("/{event_id}", response_model=EventModel)
+def delete_event(
+    event_id: int,
+    session: Session = Depends(get_session),
+):
+    event = session.get(EventModel, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
+    session.delete(event)
+    session.commit()
+    return event
 
